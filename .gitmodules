@@ -1,0 +1,3 @@
+[submodule "src/StravaUtilities"]
+	path = src/StravaUtilities
+	url = https://github.com/LoganTretter/StravaUtilities

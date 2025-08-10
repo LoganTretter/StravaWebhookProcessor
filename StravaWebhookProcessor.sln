@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StravaWebhookProcessor", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMeteoIntegration", "src\OpenMeteoIntegration\OpenMeteoIntegration.csproj", "{CD725EEF-F81D-ACB7-BE88-BB089D9138A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "tests\Tests.csproj", "{9CF47860-2CEA-F379-09D8-9AEF27965D12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StravaUtilities", "src\StravaUtilities\src\StravaUtilities.csproj", "{0D2BDA90-23CF-5187-6485-A0639927179B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{CD725EEF-F81D-ACB7-BE88-BB089D9138A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD725EEF-F81D-ACB7-BE88-BB089D9138A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD725EEF-F81D-ACB7-BE88-BB089D9138A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CF47860-2CEA-F379-09D8-9AEF27965D12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CF47860-2CEA-F379-09D8-9AEF27965D12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CF47860-2CEA-F379-09D8-9AEF27965D12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CF47860-2CEA-F379-09D8-9AEF27965D12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D2BDA90-23CF-5187-6485-A0639927179B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D2BDA90-23CF-5187-6485-A0639927179B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D2BDA90-23CF-5187-6485-A0639927179B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D2BDA90-23CF-5187-6485-A0639927179B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

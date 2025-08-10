@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenMeteoIntegration\OpenMeteoIntegration.csproj" />
+    <ProjectReference Include="..\StravaUtilities\src\StravaUtilities.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

@@ -3,7 +3,6 @@ using Polly;
 using Polly.Extensions.Http;
 using System.Text.Json.Serialization;
 using System.Text.Json;
-using System.Web.Http;
 using System.Globalization;
 
 namespace OpenMeteoIntegration;
@@ -81,17 +80,14 @@ public class OpenMeteoClient
         if (response.IsSuccessStatusCode)
             return;
 
-        var error = await response.Content.ReadAsAsync<HttpError>().ConfigureAwait(false);
         string message = $"{(int)response.StatusCode} {response.StatusCode} error in API call for path: '{pathUsed}'";
-        if (!string.IsNullOrEmpty(error.Message))
-            message += $"{Environment.NewLine}{nameof(HttpError.Message)}: {error.Message}";
-        if (!string.IsNullOrEmpty(error.MessageDetail))
-            message += $"{Environment.NewLine}{nameof(HttpError.MessageDetail)}: {error.MessageDetail}";
-        if (!string.IsNullOrEmpty(error.ExceptionMessage))
-            message += $"{Environment.NewLine}{nameof(HttpError.ExceptionMessage)}: {error.ExceptionMessage}";
 
-        if (error.Any(e => e.Key.Equals("reason", StringComparison.OrdinalIgnoreCase)))
-            message += $"{Environment.NewLine}{error.First(e => e.Key.Equals("reason", StringComparison.OrdinalIgnoreCase)).Value}";
+        var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        if (string.IsNullOrEmpty(responseContent))
+            message += $"{Environment.NewLine}Response did not specify additional info.";
+        else
+            message += $"{Environment.NewLine}Response content: {responseContent}";
 
         throw new ApplicationException(message);
     }

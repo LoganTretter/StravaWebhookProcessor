@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenMeteoIntegration;
 using StravaUtilities;
 using System.Net;
@@ -15,15 +16,27 @@ namespace StravaWebhookProcessor;
 
 public class StravaWebhookProcessor
 {
-    private readonly ILogger _logger;
+    private readonly StravaWebhookProcessorOptions _options;
 
-    private static SecretClient _secretClient = new(new Uri(Environment.GetEnvironmentVariable("KeyVaultUri")), new DefaultAzureCredential());
+    private static SecretClient? _secretClient;
 
-    private long _athleteId;
-
-    public StravaWebhookProcessor(ILoggerFactory loggerFactory)
+    public StravaWebhookProcessor(IOptions<StravaWebhookProcessorOptions> options)
     {
-        _logger = loggerFactory.CreateLogger<StravaWebhookProcessor>();
+        _options = options.Value;
+
+        var optionsValidationMessage = "";
+
+        if (string.IsNullOrEmpty(_options.KeyVaultUri))
+            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.KeyVaultUri)} is missing or blank in options. ";
+        if (_options.StravaAthleteId <= 0)
+            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaAthleteId)} is missing or invalid in options (expect a long). ";
+        if (_options.StravaWebhookSubscriptionId <= 0)
+            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaWebhookSubscriptionId)} is missing or invalid in options (expect a long). ";
+        if (string.IsNullOrEmpty(_options.StravaWebhookSubscriptionVerificationToken))
+            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaWebhookSubscriptionVerificationToken)} is missing or blank in options. ";
+
+        if (optionsValidationMessage != "")
+            throw new ArgumentException(optionsValidationMessage);
     }
 
     [Function(nameof(KeepWarmFunction))]
@@ -35,21 +48,16 @@ public class StravaWebhookProcessor
         logger.LogDebug($"Executed {nameof(KeepWarmFunction)}");
     }
 
-    [Function("StravaWebhookReceiver")]
+    [Function(nameof(StravaWebhookReceiver))]
     public async Task<HttpResponseData> StravaWebhookReceiver(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         FunctionContext executionContext)
     {
-        var logger = executionContext.GetLogger("StravaWebhookReceiver");
-        logger.LogDebug("Executing StravaWebhookProcessorReceiver.");
+        var logger = executionContext.GetLogger(nameof(StravaWebhookReceiver));
+        logger.LogDebug($"Executing {nameof(StravaWebhookReceiver)}.");
 
         HttpResponseData response;
-
-        // Could just hard code the subscription id or make it a config instead of a secret?
-        // since I can't get the id in the creation request to save it and have to manually do it anyway?
-
-        _secretClient ??= new(new Uri(Environment.GetEnvironmentVariable("KeyVaultUri")), new DefaultAzureCredential());
 
         // This GET is just used on the initial subscription creation
         if (req.Method.Equals("get", StringComparison.OrdinalIgnoreCase))
@@ -58,7 +66,7 @@ public class StravaWebhookProcessor
             var mode = queryParams.Get("hub.mode");
             var verificationToken = queryParams.Get("hub.verify_token");
 
-            var expectedVerificationToken = Environment.GetEnvironmentVariable("SubscriptionVerificationToken");
+            var expectedVerificationToken = _options.StravaWebhookSubscriptionVerificationToken;
 
             if (mode != "subscribe" || verificationToken != expectedVerificationToken)
                 return req.CreateResponse(HttpStatusCode.Forbidden);
@@ -80,16 +88,12 @@ public class StravaWebhookProcessor
             if (webhookContent == null) // TODO plus other checks?
                 return req.CreateResponse(HttpStatusCode.BadRequest);
 
-            // TODO better validation of the presence and validity of these secrets
-            var subscriptionId = (await _secretClient.GetSecretAsync("StravaWebhookSubscriptionId").ConfigureAwait(false)).Value.Value;
-            _athleteId = long.Parse((await _secretClient.GetSecretAsync("StravaWebhookAthleteId").ConfigureAwait(false)).Value.Value);
-
-            if (webhookContent.SubscriptionId.ToString() != subscriptionId)
+            if (webhookContent.SubscriptionId != _options.StravaWebhookSubscriptionId)
                 return req.CreateResponse(HttpStatusCode.Forbidden);
 
             // TODO these should just go to different methods that I would just not implement
             // but that has the downside of the overhead of the durable function, as opposed to stopping early
-            if (webhookContent.AthleteId != _athleteId)
+            if (webhookContent.AthleteId != _options.StravaAthleteId)
                 return req.CreateResponse(HttpStatusCode.OK);
 
             if (webhookContent.ObjectType == "athlete")
@@ -119,9 +123,9 @@ public class StravaWebhookProcessor
         FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(StravaWebhookOrchestrator));
-        logger.LogDebug("Executing StravaWebhookProcessorOrchestrator.");
+        logger.LogDebug($"Executing {nameof(StravaWebhookOrchestrator)}.");
 
-        await context.CallActivityAsync<string>(nameof(StravaWebhookProcessor), context.GetInput<WebhookContent>());
+        await context.CallActivityAsync<string>(nameof(StravaWebhookOrchestrator), context.GetInput<WebhookContent>());
     }
 
     [Function(nameof(StravaWebhookEventProcessor))]
@@ -134,12 +138,12 @@ public class StravaWebhookProcessor
         //   Starting / ending or avg conditions, compared to Strava's start only.
         //   Get closest couple of weather stations to the start/end and avg them for the result.
 
-        var logger = executionContext.GetLogger(nameof(StravaWebhookProcessor));
+        var logger = executionContext.GetLogger(nameof(StravaWebhookEventProcessor));
 
         logger.LogDebug($"Executing StravaWebhookProcessor. Received: {JsonSerializer.Serialize(webhookContent)}");
 
 
-        if (webhookContent.AthleteId != _athleteId)
+        if (webhookContent.AthleteId != _options.StravaAthleteId)
             return;
 
         if (webhookContent.ObjectType == "athlete")
@@ -151,7 +155,7 @@ public class StravaWebhookProcessor
 
         StravaApiToken? tokenFromVault = null;
 
-        _secretClient ??= new(new Uri(Environment.GetEnvironmentVariable("KeyVaultUri")), new DefaultAzureCredential());
+        _secretClient ??= new(new Uri(_options.KeyVaultUri), new DefaultAzureCredential());
         var _stravaApiClient = new StravaApiClient();
 
         if (_stravaApiClient.Token == null)

@@ -12,6 +12,8 @@ var host = new HostBuilder()
             {
                 configuration.GetSection(nameof(StravaWebhookProcessorOptions)).Bind(settings);
             });
+
+        services.AddScoped<IStravaEventProcessor, StravaEventProcessor>();
     })
     .Build();
 

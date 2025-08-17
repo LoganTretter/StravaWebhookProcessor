@@ -175,7 +175,7 @@ public class StravaWebhookProcessor
         var logger = executionContext.GetLogger(nameof(StravaWebhookOrchestrator));
         logger.LogDebug($"Executing {nameof(StravaWebhookOrchestrator)}");
 
-        await context.CallActivityAsync<string>(nameof(StravaWebhookOrchestrator), context.GetInput<StravaWebhookEventContent>());
+        await context.CallActivityAsync<string>(nameof(StravaWebhookEventProcessor), context.GetInput<StravaWebhookEventContent>());
     }
 
     [Function(nameof(StravaWebhookEventProcessor))]

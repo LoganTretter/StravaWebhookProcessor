@@ -12,8 +12,8 @@ public class OpenMeteoTests
         {
             Latitude = decimal.Parse("41.882629"),
             Longitude = decimal.Parse("-87.623474"),
-            Start = DateTimeOffset.Parse("2024-01-01T12:00:00Z"),
-            End = DateTimeOffset.Parse("2024-01-01T16:00:00Z")
+            StartTime = DateTimeOffset.Parse("2024-01-01T12:00:00Z"),
+            EndTime = DateTimeOffset.Parse("2024-01-01T16:00:00Z")
         };
 
         var output = await client.GetWeatherData(input);

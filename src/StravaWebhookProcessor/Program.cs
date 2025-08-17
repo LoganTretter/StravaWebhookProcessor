@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenMeteoIntegration;
 using StravaWebhookProcessor;
 
 var host = new HostBuilder()
@@ -13,6 +14,7 @@ var host = new HostBuilder()
                 configuration.GetSection(nameof(StravaWebhookProcessorOptions)).Bind(settings);
             });
 
+        services.AddSingleton<IOpenMeteoClient, OpenMeteoClient>();
         services.AddScoped<IStravaEventProcessor, StravaEventProcessor>();
     })
     .Build();

@@ -1,16 +1,16 @@
 ﻿namespace OpenMeteoIntegration;
 
-public class Output
+public class WeatherOutput
 {
-    public List<OutputDetail> OutputDetails { get; set; } = [];
+    public List<WeatherOutputDetail> OutputDetails { get; set; } = [];
 }
 
-public class OutputDetail
+public class WeatherOutputDetail
 {
-    public DateTimeOffset OutputDetailTime { get; set; }
+    public DateTimeOffset Time { get; set; }
     public decimal TemperatureFahrenheit { get; set; }
-    public decimal DewPoint { get; set; }
-    public decimal RelativeHumidity { get; set; }
+    public decimal DewPointFahrenheit { get; set; }
+    public decimal RelativeHumidityPercent { get; set; }
     public decimal PrecipitationInches { get; set; }
     public WMO_Code WeatherCode { get; set; }
     public decimal WindSpeedMph { get; set; }

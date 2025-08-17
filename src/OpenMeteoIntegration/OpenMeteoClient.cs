@@ -7,27 +7,39 @@ using System.Globalization;
 
 namespace OpenMeteoIntegration;
 
-public class OpenMeteoClient
+/// <summary>
+/// A client to get weather data from Open-Meteo
+/// </summary>
+public interface IOpenMeteoClient : IDisposable
+{
+    /// <summary>
+    /// Gets weather data
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    Task<WeatherOutput> GetWeatherData(GetWeatherInput input);
+}
+
+/// <inheritdoc />
+public class OpenMeteoClient : IOpenMeteoClient
 {
     private const string BaseUrl = $"https://api.open-meteo.com";
     private const string ApiPath = "v1";
     private const string ForecastPath = "forecast";
 
-    private HttpClient _httpClient;
+    private static Uri BaseUri = new Uri(BaseUrl, UriKind.Absolute);
+    private static Uri ApiUri = new Uri(ApiPath + "/", UriKind.Relative);
+
+    private readonly Lazy<HttpClient> _lazyHttpClient = new Lazy<HttpClient>(() => new() { BaseAddress = new Uri(BaseUri, ApiUri) });
+
+    private bool _disposed;
 
     private static readonly IAsyncPolicy<HttpResponseMessage> TransientRetryPolicy = HttpPolicyExtensions
         .HandleTransientHttpError()
         .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
         .WaitAndRetryAsync(new[] { TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(400), TimeSpan.FromMilliseconds(800) });
 
-    public OpenMeteoClient()
-    {
-        var baseUri = new Uri(BaseUrl, UriKind.Absolute);
-        var apiUri = new Uri(ApiPath + "/", UriKind.Relative);
-        _httpClient = new() { BaseAddress = new Uri(baseUri, apiUri) };
-    }
-
-    public async Task<Output> GetWeatherData(GetWeatherInput input)
+    public async Task<WeatherOutput> GetWeatherData(GetWeatherInput input)
     {
         var queryParams = new Dictionary<string, string?>()
         {
@@ -38,13 +50,13 @@ public class OpenMeteoClient
             { "wind_speed_unit", "mph" },
             { "precipitation_unit", "inch" },
             { "timezone", "GMT" },
-            { "start_minutely_15", input.Start.AddMinutes(-15).ToString("s") },
-            { "end_minutely_15", input.End.AddMinutes(15).ToString("s") }
+            { "start_minutely_15", input.StartTime.AddMinutes(-15).ToString("s") },
+            { "end_minutely_15", input.EndTime.AddMinutes(15).ToString("s") }
 
         };
         var uri = new Uri(QueryHelpers.AddQueryString(new Uri(ForecastPath, UriKind.Relative).ToString(), queryParams), UriKind.Relative);
 
-        using var response = await TransientRetryPolicy.ExecuteAsync(() => _httpClient.GetAsync(uri)).ConfigureAwait(false);
+        using var response = await TransientRetryPolicy.ExecuteAsync(() => _lazyHttpClient.Value.GetAsync(uri)).ConfigureAwait(false);
 
         var responseObject = await ParseResponse<ResponseRoot>(response, uri.ToString()).ConfigureAwait(false);
 
@@ -92,59 +104,54 @@ public class OpenMeteoClient
         throw new ApplicationException(message);
     }
 
-    private static Output CreateOutput(ResponseRoot response)
+    private static WeatherOutput CreateOutput(ResponseRoot response)
     {
-        var output = new Output();
+        var output = new WeatherOutput();
 
-        if (response?.minutely_15?.time == null)
+        if (response?.ResponseDetails?.Times == null)
             return output;
 
-        // Sometimes time has one more entry than the actual data arrays.
+        // Sometimes the times array has one more entry than the actual data arrays.
         // But the last time entry is the extra one, all the others correspond.
 
-        for (int i = 0; i < response.minutely_15.temperature_2m.Length; i++)
+        for (int i = 0; i < response.ResponseDetails.TemperaturesAt2Meters.Length; i++)
         {
-            string timeString = response.minutely_15.time[i];
+            string timeString = response.ResponseDetails.Times[i];
             var time = DateTimeOffset.ParseExact(timeString, "yyyy-MM-dd'T'HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-            output.OutputDetails.Add(new OutputDetail
+            output.OutputDetails.Add(new WeatherOutputDetail
             {
-                OutputDetailTime = time,
-                TemperatureFahrenheit = response.minutely_15.temperature_2m[i],
-                RelativeHumidity = response.minutely_15.relative_humidity_2m[i],
-                DewPoint = response.minutely_15.dew_point_2m[i],
-                PrecipitationInches = response.minutely_15.precipitation[i],
-                WeatherCode = response.minutely_15.weather_code[i],
-                WindSpeedMph = response.minutely_15.wind_speed_10m[i],
-                WindGustSpeedMph = response.minutely_15.wind_gusts_10m[i],
-                WindDirectionDegrees = response.minutely_15.wind_direction_10m[i]
+                Time = time,
+                TemperatureFahrenheit = response.ResponseDetails.TemperaturesAt2Meters[i],
+                RelativeHumidityPercent = response.ResponseDetails.RelativeHumiditiesAt2Meters[i],
+                DewPointFahrenheit = response.ResponseDetails.DewPointsAt2Meters[i],
+                PrecipitationInches = response.ResponseDetails.Precipitations[i],
+                WeatherCode = response.ResponseDetails.WeatherCodes[i],
+                WindSpeedMph = response.ResponseDetails.WindSpeedsAt10Meters[i],
+                WindGustSpeedMph = response.ResponseDetails.WindGustsAt10Meters[i],
+                WindDirectionDegrees = response.ResponseDetails.WindDirectionsAt10Meters[i]
             });
         }
 
         return output;
     }
-}
 
-public class ResponseRoot
-{
-    public decimal latitude { get; set; }
-    public decimal longitude { get; set; }
-    public decimal elevation { get; set; }
-    public decimal generationtime_ms { get; set; }
-    public int utc_offset_seconds { get; set; }
-    public string timezone { get; set; }
-    public string timezone_abbreviation { get; set; }
-    public ResponseDetails minutely_15 { get; set; }
-}
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                if (_lazyHttpClient.IsValueCreated)
+                    _lazyHttpClient.Value?.Dispose();
+            }
 
-public class ResponseDetails
-{
-    public string[] time { get; set; }
-    public decimal[] temperature_2m { get; set; }
-    public decimal[] relative_humidity_2m { get; set; }
-    public decimal[] dew_point_2m { get; set; }
-    public decimal[] precipitation { get; set; }
-    public WMO_Code[] weather_code { get; set; }
-    public decimal[] wind_speed_10m { get; set; }
-    public decimal[] wind_direction_10m { get; set; }
-    public decimal[] wind_gusts_10m { get; set; }
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

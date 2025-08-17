@@ -5,7 +5,7 @@ using StravaUtilities;
 namespace StravaWebhookProcessor;
 
 /// <inheritdoc />
-public class StravaEventProcessor : IStravaEventProcessor
+public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEventProcessor
 {
     public bool HandleActivityCreation { get; } = true;
     public bool HandleActivityUpdate { get; } = false;
@@ -101,7 +101,7 @@ public class StravaEventProcessor : IStravaEventProcessor
         return; // nothing for now
     }
 
-    private static async Task UpdateDescriptionWithWeatherInfo(Activity activity)
+    private async Task UpdateDescriptionWithWeatherInfo(Activity activity)
     {
         activity.Description += "~~";
 
@@ -113,11 +113,10 @@ public class StravaEventProcessor : IStravaEventProcessor
         var middleTime = startTime.AddSeconds(activity.ElapsedSeconds / 2);
         var endTime = startTime.AddSeconds(activity.ElapsedSeconds);
 
-        var openMeteoClient = new OpenMeteoClient();
         var input = new GetWeatherInput()
         {
-            Start = startTime,
-            End = endTime,
+            StartTime = startTime,
+            EndTime = endTime,
             Latitude = activity.StartLocation.Latitude,
             Longitude = activity.StartLocation.Longitude
         };
@@ -131,10 +130,10 @@ public class StravaEventProcessor : IStravaEventProcessor
         // Less than 1 hour: just average all the data points in between
         if (activity.ElapsedSeconds < 3600)
         {
-            var detailsInBetween = output.OutputDetails.Where(d => startTime <= d.OutputDetailTime && d.OutputDetailTime <= endTime).ToList();
+            var detailsInBetween = output.OutputDetails.Where(d => startTime <= d.Time && d.Time <= endTime).ToList();
             if (!detailsInBetween.Any())
             {
-                var closestToStart = output.OutputDetails.MinBy(d => Math.Abs(startTime.Ticks - d.OutputDetailTime.Ticks));
+                var closestToStart = output.OutputDetails.MinBy(d => Math.Abs(startTime.Ticks - d.Time.Ticks));
                 if (closestToStart == null)
                     return;
 
@@ -150,14 +149,14 @@ public class StravaEventProcessor : IStravaEventProcessor
         {
             activity.Description += "\n";
 
-            var firstDetailBeforeStart = output.OutputDetails.Where(d => d.OutputDetailTime <= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.OutputDetailTime.Ticks));
-            var firstDetailAfterStart = output.OutputDetails.Where(d => d.OutputDetailTime >= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.OutputDetailTime.Ticks));
+            var firstDetailBeforeStart = output.OutputDetails.Where(d => d.Time <= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.Time.Ticks));
+            var firstDetailAfterStart = output.OutputDetails.Where(d => d.Time >= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.Time.Ticks));
             var startDetails = new[] { firstDetailBeforeStart, firstDetailAfterStart };
             var startAvg = GetAverageOfMultipleDetails(startDetails);
             activity.Description += "Start: " + FormatWeatherSummary(startAvg);
 
-            var firstDetailBeforeEnd = output.OutputDetails.Where(d => d.OutputDetailTime <= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.OutputDetailTime.Ticks));
-            var firstDetailAfterEnd = output.OutputDetails.Where(d => d.OutputDetailTime >= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.OutputDetailTime.Ticks));
+            var firstDetailBeforeEnd = output.OutputDetails.Where(d => d.Time <= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.Time.Ticks));
+            var firstDetailAfterEnd = output.OutputDetails.Where(d => d.Time >= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.Time.Ticks));
             var endDetails = new[] { firstDetailBeforeEnd, firstDetailAfterEnd };
             var endAvg = GetAverageOfMultipleDetails(endDetails);
             activity.Description += " \nEnd: " + FormatWeatherSummary(endAvg);
@@ -167,34 +166,34 @@ public class StravaEventProcessor : IStravaEventProcessor
         {
             activity.Description += "\n";
 
-            var firstDetailBeforeStart = output.OutputDetails.Where(d => d.OutputDetailTime <= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.OutputDetailTime.Ticks));
-            var firstDetailAfterStart = output.OutputDetails.Where(d => d.OutputDetailTime >= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.OutputDetailTime.Ticks));
+            var firstDetailBeforeStart = output.OutputDetails.Where(d => d.Time <= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.Time.Ticks));
+            var firstDetailAfterStart = output.OutputDetails.Where(d => d.Time >= startTime).MinBy(d => Math.Abs(startTime.Ticks - d.Time.Ticks));
             var startDetails = new[] { firstDetailBeforeStart, firstDetailAfterStart };
             var startAvg = GetAverageOfMultipleDetails(startDetails);
             activity.Description += "Start: " + FormatWeatherSummary(startAvg);
 
-            var firstDetailBeforeMiddle = output.OutputDetails.Where(d => d.OutputDetailTime <= middleTime).MinBy(d => Math.Abs(middleTime.Ticks - d.OutputDetailTime.Ticks));
-            var firstDetailAfterMiddle = output.OutputDetails.Where(d => d.OutputDetailTime >= middleTime).MinBy(d => Math.Abs(middleTime.Ticks - d.OutputDetailTime.Ticks));
+            var firstDetailBeforeMiddle = output.OutputDetails.Where(d => d.Time <= middleTime).MinBy(d => Math.Abs(middleTime.Ticks - d.Time.Ticks));
+            var firstDetailAfterMiddle = output.OutputDetails.Where(d => d.Time >= middleTime).MinBy(d => Math.Abs(middleTime.Ticks - d.Time.Ticks));
             var middleDetails = new[] { firstDetailBeforeMiddle, firstDetailAfterMiddle };
             var middleAvg = GetAverageOfMultipleDetails(middleDetails);
             activity.Description += " \nMiddle: " + FormatWeatherSummary(middleAvg);
 
-            var firstDetailBeforeEnd = output.OutputDetails.Where(d => d.OutputDetailTime <= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.OutputDetailTime.Ticks));
-            var firstDetailAfterEnd = output.OutputDetails.Where(d => d.OutputDetailTime >= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.OutputDetailTime.Ticks));
+            var firstDetailBeforeEnd = output.OutputDetails.Where(d => d.Time <= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.Time.Ticks));
+            var firstDetailAfterEnd = output.OutputDetails.Where(d => d.Time >= endTime).MinBy(d => Math.Abs(endTime.Ticks - d.Time.Ticks));
             var endDetails = new[] { firstDetailBeforeEnd, firstDetailAfterEnd };
             var endAvg = GetAverageOfMultipleDetails(endDetails);
             activity.Description += " \nEnd: " + FormatWeatherSummary(endAvg);
         }
     }
 
-    private static string FormatWeatherSummary(OutputDetail detail)
+    private static string FormatWeatherSummary(WeatherOutputDetail detail)
     {
         string descFormat = "{0}F, Dew {1}F, Hum {2}%, Wind {3}mph {4} (gust {5}), Sky {6}{7}";
 
         return string.Format(descFormat,
             Math.Round(detail.TemperatureFahrenheit, 0),
-            Math.Round(detail.DewPoint, 0),
-            Math.Round(detail.RelativeHumidity, 0),
+            Math.Round(detail.DewPointFahrenheit, 0),
+            Math.Round(detail.RelativeHumidityPercent, 0),
             Math.Round(detail.WindSpeedMph, 0),
             detail.WindDirection,
             Math.Round(detail.WindGustSpeedMph, 0),
@@ -202,7 +201,7 @@ public class StravaEventProcessor : IStravaEventProcessor
             detail.PrecipitationInches > 0 ? ", some precip" : "");
     }
 
-    private static OutputDetail GetAverageOfMultipleDetails(IEnumerable<OutputDetail> details)
+    private static WeatherOutputDetail GetAverageOfMultipleDetails(IEnumerable<WeatherOutputDetail> details)
     {
         var detailsList = details.Where(d => d != null).ToList();
 
@@ -229,11 +228,11 @@ public class StravaEventProcessor : IStravaEventProcessor
             }
         }
 
-        return new OutputDetail
+        return new WeatherOutputDetail
         {
             TemperatureFahrenheit = temp,
-            DewPoint = detailsList.Average(d => d.DewPoint),
-            RelativeHumidity = detailsList.Average(d => d.RelativeHumidity),
+            DewPointFahrenheit = detailsList.Average(d => d.DewPointFahrenheit),
+            RelativeHumidityPercent = detailsList.Average(d => d.RelativeHumidityPercent),
             WindSpeedMph = detailsList.Average(d => d.WindSpeedMph),
             WindGustSpeedMph = detailsList.Average(d => d.WindGustSpeedMph),
             WindDirectionDegrees = detailsList.First().WindDirectionDegrees, // TODO how to average wind direction.. could do a mode instead

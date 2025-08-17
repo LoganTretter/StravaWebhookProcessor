@@ -21,11 +21,11 @@ public class StravaWebhookEventContent
 
     [JsonPropertyName("aspect_type")]
     public string? EventType { get; set; }
-    public StravaWebhookEventType StravaWebhookEventType => Enum.TryParse(EventType, out StravaWebhookEventType eventType) ? eventType : StravaWebhookEventType.Unknown;
+    public StravaWebhookEventType StravaWebhookEventType => Enum.TryParse(EventType, ignoreCase: true, out StravaWebhookEventType eventType) ? eventType : StravaWebhookEventType.Unknown;
 
     [JsonPropertyName("object_type")]
     public string? ObjectType { get; set; }
-    public StravaWebhookObjectType StravaWebhookObjectType => Enum.TryParse(ObjectType, out StravaWebhookObjectType objectType) ? objectType : StravaWebhookObjectType.Unknown;
+    public StravaWebhookObjectType StravaWebhookObjectType => Enum.TryParse(ObjectType, ignoreCase: true, out StravaWebhookObjectType objectType) ? objectType : StravaWebhookObjectType.Unknown;
 
     [JsonPropertyName("event_time")]
     public long EventTime { get; set; }

@@ -5,8 +5,10 @@
         "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
 
         "AzureFunctionsJobHost__extensions__http__routePrefix": "some_prefix_of_your_choice",
-        
-        "StravaWebhookProcessorOptions:KeyVaultUri": "uri_of_key_vault",
+
+        "StravaWebhookProcessorOptions:KeyVaultUri": "https://something.vault.azure.net/",
+        "StravaWebhookProcessorOptions:StravaApiClientId": "123456",
+        "StravaWebhookProcessorOptions:StravaApiClientSecret": "0123456789abcdef0123456789abcdef01234567",
         "StravaWebhookProcessorOptions:StravaAthleteId": "1234567",
         "StravaWebhookProcessorOptions:StravaWebhookSubscriptionId": "123456",
         "StravaWebhookProcessorOptions:StravaWebhookSubscriptionVerificationToken": "some_string_of_your_choice"

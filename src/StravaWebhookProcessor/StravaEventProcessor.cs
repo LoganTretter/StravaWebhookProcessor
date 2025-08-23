@@ -5,13 +5,26 @@ using StravaUtilities;
 namespace StravaWebhookProcessor;
 
 /// <inheritdoc />
-public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEventProcessor
+public class StravaEventProcessor(StravaApiClient stravaApiClient, IOpenMeteoClient openMeteoClient) : IStravaEventProcessor
 {
-    public bool HandleActivityCreation { get; } = true;
-    public bool HandleActivityUpdate { get; } = false;
-    public bool HandleActivityDeletion { get; } = false;
+    public bool HandleEventType(StravaWebhookEventType eventType)
+    {
+        return eventType == StravaWebhookEventType.Create;
+    }
 
-    public async Task ProcessActivityCreation(StravaApiClient stravaApiClient, ILogger logger, long athleteId, long activityId)
+    public async Task ProcessActivityEvent(StravaWebhookEventType eventType, ILogger? logger, long athleteId, long activityId)
+    {
+        switch (eventType)
+        {
+            case StravaWebhookEventType.Create:
+                await ProcessActivityCreation(logger, athleteId, activityId);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private async Task ProcessActivityCreation(ILogger? logger, long athleteId, long activityId)
     {
         var activity = await stravaApiClient.GetActivity(activityId).ConfigureAwait(false);
 
@@ -40,13 +53,13 @@ public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEve
             // Could also maybe use avg HR - unlikely to be below 110 for my hikes
             if (!string.IsNullOrEmpty(activity.Map?.SummaryPolyline) || !activity.Trainer)
             {
-                logger.LogDebug("Updating walk activity with map - hiding from feed.");
+                logger?.LogDebug("Updating walk activity with map - hiding from feed.");
 
                 updateInfo.SuppressFromFeed = true;
             }
             else
             {
-                logger.LogDebug("Updating walk activity without map - marking as treadmill hike to be refined.");
+                logger?.LogDebug("Updating walk activity without map - marking as treadmill hike to be refined.");
 
                 updateInfo.Name = "Treadmill Hike ~";
                 updateInfo.Description = "~~\nto be refined";
@@ -56,7 +69,7 @@ public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEve
         }
         else if (activity.SportType == ActivityType.Run && string.IsNullOrEmpty(activity.Map?.SummaryPolyline) && activity.Name != null && !activity.Name.Equals("Treadmill Run"))
         {
-            logger.LogDebug("Updating run activity without map - marking as treadmill run to be refined.");
+            logger?.LogDebug("Updating run activity without map - marking as treadmill run to be refined.");
 
             updateInfo.Name = "Treadmill Run ~";
             updateInfo.Description = "~~\nto be refined";
@@ -69,7 +82,7 @@ public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEve
         }
         else if (activity.SportType == ActivityType.WeightTraining)
         {
-            logger.LogDebug("Updating weight training activity - setting properties and hiding from feed.");
+            logger?.LogDebug("Updating weight training activity - setting properties and hiding from feed.");
 
             updateInfo.Name = "Strength Training";
             updateInfo.SportType = ActivityType.WeightTraining;
@@ -77,7 +90,7 @@ public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEve
         }
         else if (activity.SportType == ActivityType.Workout && string.IsNullOrEmpty(activity.Map?.SummaryPolyline))
         {
-            logger.LogDebug("Updating workout activity without map - setting properties and hiding from feed.");
+            logger?.LogDebug("Updating workout activity without map - setting properties and hiding from feed.");
 
             updateInfo.Name = "General Activity";
             updateInfo.SportType = ActivityType.Workout;
@@ -89,16 +102,6 @@ public class StravaEventProcessor(IOpenMeteoClient openMeteoClient) : IStravaEve
         }
 
         await stravaApiClient.UpdateActivity(updateInfo).ConfigureAwait(false);
-    }
-
-    public async Task ProcessActivityUpdate(StravaApiClient stravaApiClient, ILogger logger, long athleteId, long activityId)
-    {
-        return; // nothing for now
-    }
-
-    public async Task ProcessActivityDeletion(StravaApiClient stravaApiClient, ILogger logger, long athleteId, long activityId)
-    {
-        return; // nothing for now
     }
 
     private async Task UpdateDescriptionWithWeatherInfo(Activity activity)

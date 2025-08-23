@@ -1,12 +1,9 @@
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using StravaUtilities;
 using System.Net;
 using System.Text.Json;
 
@@ -16,26 +13,11 @@ public class StravaWebhookProcessor
 {
     private readonly StravaWebhookProcessorOptions _options;
     private readonly IStravaEventProcessor _stravaEventProcessor;
-    private static SecretClient? _secretClient;
 
     public StravaWebhookProcessor(IOptions<StravaWebhookProcessorOptions> options, IStravaEventProcessor stravaEventProcessor)
     {
         _options = options.Value;
         _stravaEventProcessor = stravaEventProcessor;
-
-        var optionsValidationMessage = "";
-
-        if (string.IsNullOrEmpty(_options.KeyVaultUri))
-            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.KeyVaultUri)} is missing or blank in options. ";
-        if (_options.StravaAthleteId <= 0)
-            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaAthleteId)} is missing or invalid in options (expect a long). ";
-        if (_options.StravaWebhookSubscriptionId <= 0)
-            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaWebhookSubscriptionId)} is missing or invalid in options (expect a long). ";
-        if (string.IsNullOrEmpty(_options.StravaWebhookSubscriptionVerificationToken))
-            optionsValidationMessage += $"{nameof(StravaWebhookProcessorOptions.StravaWebhookSubscriptionVerificationToken)} is missing or blank in options. ";
-
-        if (optionsValidationMessage != "")
-            throw new ArgumentException(optionsValidationMessage);
     }
 
     // On the basic Azure Function "consumption" plan, it may sort of "power down" the function app after some amount of inactive time (5-20 minutes is what I'm seeing)
@@ -155,7 +137,7 @@ public class StravaWebhookProcessor
         if (webhookContent.StravaWebhookObjectType != StravaWebhookObjectType.Activity)
             return req.CreateResponse(HttpStatusCode.OK); // Only activity events are supported
 
-        if (!ActivityEventTypeIsSupported(webhookContent.StravaWebhookEventType))
+        if (!_stravaEventProcessor.HandleEventType(webhookContent.StravaWebhookEventType))
             return req.CreateResponse(HttpStatusCode.OK);
 
         // Start a separate task to do the actual processing
@@ -184,85 +166,8 @@ public class StravaWebhookProcessor
         FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(StravaWebhookEventProcessor));
-
         logger.LogDebug($"Executing {nameof(StravaWebhookEventProcessor)}");
 
-        StravaApiToken? tokenFromVault = null;
-
-        _secretClient ??= new(new Uri(_options.KeyVaultUri), new DefaultAzureCredential());
-        var stravaApiClient = new StravaApiClient();
-
-        if (stravaApiClient.Token == null)
-        {
-            logger.LogDebug("Running initial authentication with Strava");
-
-            var secret = (await _secretClient.GetSecretAsync("StravaApiToken").ConfigureAwait(false)).Value;
-            if (secret == null)
-                throw new ApplicationException("StravaApiToken Secret was null.");
-
-            var secretValue = secret.Value;
-            if (string.IsNullOrEmpty(secretValue))
-                throw new ApplicationException("StravaApiToken secret value was null or empty.");
-
-            tokenFromVault = JsonSerializer.Deserialize<StravaApiToken>(secretValue);
-            if (tokenFromVault == null)
-                throw new ApplicationException("tokenFromVault was null.");
-            if (string.IsNullOrEmpty(tokenFromVault.AccessToken))
-                throw new ApplicationException("tokenFromVault.AccessToken was null or empty.");
-            if (string.IsNullOrEmpty(tokenFromVault.RefreshToken))
-                throw new ApplicationException("tokenFromVault.RefreshToken was null or empty.");
-
-            var clientId = (await _secretClient.GetSecretAsync("StravaApiClientId").ConfigureAwait(false)).Value.Value;
-            var clientSecret = (await _secretClient.GetSecretAsync("StravaApiClientSecret").ConfigureAwait(false)).Value.Value;
-
-            await stravaApiClient.Authenticate(tokenFromVault, clientId, clientSecret).ConfigureAwait(false);
-        }
-
-        if (stravaApiClient.Token == null)
-        {
-            throw new ApplicationException("Tried to authenticate with Strava but Token is still null.");
-        }
-
-        try
-        {
-            switch (webhookContent.StravaWebhookEventType)
-            {
-                case StravaWebhookEventType.Create:
-                    logger.LogDebug("Processing creation event for activity id {activityId}", webhookContent.ObjectId);
-                    await _stravaEventProcessor.ProcessActivityCreation(stravaApiClient, logger, webhookContent.AthleteId, webhookContent.ObjectId);
-                    break;
-                case StravaWebhookEventType.Update:
-                    logger.LogDebug("Processing update event for activity id {activityId}", webhookContent.ObjectId);
-                    await _stravaEventProcessor.ProcessActivityUpdate(stravaApiClient, logger, webhookContent.AthleteId, webhookContent.ObjectId);
-                    break;
-                case StravaWebhookEventType.Delete:
-                    logger.LogDebug("Processing deletion event for activity id {activityId}", webhookContent.ObjectId);
-                    await _stravaEventProcessor.ProcessActivityDeletion(stravaApiClient, logger, webhookContent.AthleteId, webhookContent.ObjectId);
-                    break;
-            }
-        }
-        finally
-        {
-            if (tokenFromVault != null && tokenFromVault.AccessToken != stravaApiClient.Token.AccessToken)
-            {
-                logger.LogDebug("Updating token in key vault");
-
-                await _secretClient.SetSecretAsync("StravaApiToken", JsonSerializer.Serialize(stravaApiClient.Token)).ConfigureAwait(false);
-            }
-        }
-    }
-    
-    private bool ActivityEventTypeIsSupported(StravaWebhookEventType eventType)
-    {
-        if (eventType == StravaWebhookEventType.Create && _stravaEventProcessor.HandleActivityCreation)
-            return true;
-
-        if (eventType == StravaWebhookEventType.Update && _stravaEventProcessor.HandleActivityUpdate)
-            return true;
-
-        if (eventType == StravaWebhookEventType.Delete && _stravaEventProcessor.HandleActivityDeletion)
-            return true;
-
-        return false;
+        await _stravaEventProcessor.ProcessActivityEvent(webhookContent.StravaWebhookEventType, logger, webhookContent.AthleteId, webhookContent.ObjectId).ConfigureAwait(false);
     }
 }

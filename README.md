@@ -39,6 +39,18 @@ Standard tools:
 - [Azure Key Vault](https://learn.microsoft.com/en-us/azure/key-vault/general/) for storing Strava API access token
   - [SecretClient](https://learn.microsoft.com/en-us/dotnet/api/overview/azure/security.keyvault.secrets-readme?view=azure-dotnet) for interfacing with vault
 
+## Azure Resources
+
+This is built as an Azure Functions project, but fairly simple.
+I chose Azure Functions because I wanted something cheap, serverless, and something where I didn't need to manage the infrastructure.
+
+The couple pieces of complexity come from:
+
+- The need to keep track of the token. I use an Azure Key Vault for this, since it is secure and cheap.
+- The need to respond quickly to events. I use Azure Durable Functions for this. This creates the need for a storage account.
+
+![Resource Diagram](docs/Strava Webhook Processor Resource Diagram.png)
+
 ## Subscribing to the webhooks
 
 Before the processor can receive events for any activities, webhooks must be subscribed to.

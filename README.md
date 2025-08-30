@@ -20,7 +20,7 @@ The webhooks are subscribed to by your "API application", kind of like your acce
 
 They describe how to create an API app here: https://developers.strava.com/docs/getting-started/#account
 
-## Technologies / References
+## Technologies / references
 
 Custom libraries:
 
@@ -39,7 +39,7 @@ Standard tools:
 - [Azure Key Vault](https://learn.microsoft.com/en-us/azure/key-vault/general/) for storing Strava API access token
   - [SecretClient](https://learn.microsoft.com/en-us/dotnet/api/overview/azure/security.keyvault.secrets-readme?view=azure-dotnet) for interfacing with vault
 
-## Azure Resources
+## Azure resources
 
 This is built as an Azure Functions project, but fairly simple.
 I chose Azure Functions because I wanted something cheap, serverless, and something where I didn't need to manage the infrastructure.
@@ -51,7 +51,18 @@ The couple pieces of complexity come from:
 
 ![Resource Diagram](docs/strava-webhook-processor-resource-diagram.png)
 
-## Subscribing to the webhooks
+## Implementation details
+
+The [StravaWebhookProcessorFunctions](src/StravaWebhookProcessor/StravaWebhookProcessorFunctions.cs) class can be seen as the "mechanism" or "coordinator" for handling the events (and the initial subscription). You could implement this project and mostly leave that as-is.
+
+But the real effect of using the webhooks is - what do you want to do with each event? That's where you would probably want to implement your own processing.
+
+To separate those concerns, the functions call into a separate event processor, through the [IStravaWebhookEventProcessor](src/StravaWebhookProcessor/IStravaWebhookEventProcessor.cs) interface.
+I have my own implementation of this ([StravaWebhookEventProcessor](src/StravaWebhookProcessor/StravaWebhookEventProcessor.cs)) to do what I want with each event (as noted in [Applications](#Applications)), but you can write your own implementation to do whatever you want. Update [Program.cs](src/StravaWebhookProcessor/Program.cs), use dependency injection to add your implementation (along with its own depenencies as needed).
+
+## Explanation of concepts and processes
+
+### Subscribing to the webhooks
 
 Before the processor can receive events for any activities, webhooks must be subscribed to.
 
@@ -97,7 +108,7 @@ sequenceDiagram
 
 ```
 
-## Processing the webhook events
+### Processing the webhook events
 
 Once the app is subscribed, the URL provided will receive events for all athletes that have authorized the app.
 

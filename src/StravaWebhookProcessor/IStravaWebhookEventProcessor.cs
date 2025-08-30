@@ -2,7 +2,10 @@
 
 namespace StravaWebhookProcessor;
 
-public interface IStravaEventProcessor
+/// <summary>
+/// Defines methods for what to do with each Strava webhook event
+/// </summary>
+public interface IStravaWebhookEventProcessor
 {
     /// <summary>
     /// Whether this processor handles the <paramref name="eventType"/>

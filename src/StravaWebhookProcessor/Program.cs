@@ -37,7 +37,7 @@ var host = new HostBuilder()
             return new StravaApiClient(options.StravaApiClientId, options.StravaApiClientSecret, stravaTokenStorer);
         });
 
-        services.AddScoped<IStravaEventProcessor, StravaEventProcessor>();
+        services.AddScoped<IStravaWebhookEventProcessor, StravaWebhookEventProcessor>();
     })
     .Build();
 

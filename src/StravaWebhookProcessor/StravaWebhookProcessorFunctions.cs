@@ -12,9 +12,9 @@ namespace StravaWebhookProcessor;
 public class StravaWebhookProcessor
 {
     private readonly StravaWebhookProcessorOptions _options;
-    private readonly IStravaEventProcessor _stravaEventProcessor;
+    private readonly IStravaWebhookEventProcessor _stravaEventProcessor;
 
-    public StravaWebhookProcessor(IOptions<StravaWebhookProcessorOptions> options, IStravaEventProcessor stravaEventProcessor)
+    public StravaWebhookProcessor(IOptions<StravaWebhookProcessorOptions> options, IStravaWebhookEventProcessor stravaEventProcessor)
     {
         _options = options.Value;
         _stravaEventProcessor = stravaEventProcessor;

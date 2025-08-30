@@ -5,7 +5,7 @@ using StravaUtilities;
 namespace StravaWebhookProcessor;
 
 /// <inheritdoc />
-public class StravaEventProcessor(StravaApiClient stravaApiClient, IOpenMeteoClient openMeteoClient) : IStravaEventProcessor
+public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenMeteoClient openMeteoClient) : IStravaWebhookEventProcessor
 {
     public bool HandleEventType(StravaWebhookEventType eventType)
     {

@@ -60,6 +60,20 @@ But the real effect of using the webhooks is - what do you want to do with each 
 To separate those concerns, the functions call into a separate event processor, through the [IStravaWebhookEventProcessor](src/StravaWebhookProcessor/IStravaWebhookEventProcessor.cs) interface.
 I have my own implementation of this ([StravaWebhookEventProcessor](src/StravaWebhookProcessor/StravaWebhookEventProcessor.cs)) to do what I want with each event (as noted in [Applications](#Applications)), but you can write your own implementation to do whatever you want. Update [Program.cs](src/StravaWebhookProcessor/Program.cs), use dependency injection to add your implementation (along with its own depenencies as needed).
 
+## Configuration and Deployment
+
+Configuration is set up to use the [options pattern](https://learn.microsoft.com/en-us/dotnet/core/extensions/options), via the [StravaWebhookProcessorOptions](src/StravaWebhookProcessor/StravaWebhookProcessorOptions.cs) class. It relies on dependency injection, described more here: https://learn.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection#working-with-options-and-settings
+
+When running locally:
+- You can use a [local.settings file](https://learn.microsoft.com/en-us/azure/azure-functions/functions-develop-local?pivots=programming-language-csharp#local-settings-file)
+- But it needs to follow certain syntax: see [local.settings_sample.json](src/StravaWebhookProcessor/local.settings_sample.json).
+
+When running in Azure:
+- TODO confirm what the setting name should be (same : delimiter?)
+
+Notice in the local.settings_sample.json file there is this setting ```AzureFunctionsJobHost__extensions__http__routePrefix```
+- This overrides the ```routePrefix``` setting in the host.json file, providing an extra configuration for what the function's url will be
+
 ## Explanation of concepts and processes
 
 ### Subscribing to the webhooks

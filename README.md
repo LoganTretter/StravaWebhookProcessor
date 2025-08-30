@@ -49,7 +49,7 @@ The couple pieces of complexity come from:
 - The need to keep track of the token. I use an Azure Key Vault for this, since it is secure and cheap.
 - The need to respond quickly to events. I use Azure Durable Functions for this. This creates the need for a storage account.
 
-![Resource Diagram](docs/Strava Webhook Processor Resource Diagram.png)
+![Resource Diagram](docs/strava-webhook-processor-resource-diagram.png)
 
 ## Subscribing to the webhooks
 

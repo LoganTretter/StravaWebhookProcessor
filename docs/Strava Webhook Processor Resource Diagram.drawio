@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" version="28.1.1">
+  <diagram name="Page-1" id="Pc2NvGxb7NlYIKMNjN2F">
+    <mxGraphModel dx="983" dy="518" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="8bF6gdE_5AkmMryX_kdy-3" value="Azure resource group" style="rounded=1;whiteSpace=wrap;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;spacingBottom=-30;" vertex="1" parent="1">
+          <mxGeometry x="310" y="120" width="360" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-2" value="Storage&lt;br&gt;&lt;div&gt;Account&lt;/div&gt;" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/storage/Storage_Accounts.svg;" parent="1" vertex="1">
+          <mxGeometry x="560" y="174" width="65" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;" parent="1" source="66jChV7bm10N9DBPdd5Q-3" target="66jChV7bm10N9DBPdd5Q-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-3" value="&lt;div&gt;Strava&lt;/div&gt;" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#fa6800;strokeColor=light-dark(#C73500,#FFCE9F);points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=api;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="180" y="176" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" parent="1" source="66jChV7bm10N9DBPdd5Q-13" target="66jChV7bm10N9DBPdd5Q-3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="205" y="130" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.031;entryY=0.497;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" parent="1" source="66jChV7bm10N9DBPdd5Q-1" target="66jChV7bm10N9DBPdd5Q-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-10" value="&lt;div&gt;Key Vault&lt;/div&gt;" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/security/Key_Vaults.svg;" parent="1" vertex="1">
+          <mxGeometry x="360" y="300" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="66jChV7bm10N9DBPdd5Q-10" target="66jChV7bm10N9DBPdd5Q-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="390" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8bF6gdE_5AkmMryX_kdy-1" value="Text" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="66jChV7bm10N9DBPdd5Q-12">
+          <mxGeometry x="0.6571" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-1" value="&lt;div&gt;Webhook Subscription&lt;/div&gt;&lt;div&gt;Azure Functions&lt;/div&gt;" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Function_Apps.svg;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="360" y="170" width="68" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="66jChV7bm10N9DBPdd5Q-13" value="&lt;div&gt;Coros&lt;/div&gt;" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=api;strokeColor=light-dark(#000000,#FF0000);" parent="1" vertex="1">
+          <mxGeometry x="180" y="50" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="8bF6gdE_5AkmMryX_kdy-5" value="Strava Webhoook Processor Resource Diagram" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="345" y="40" width="280" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

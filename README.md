@@ -69,8 +69,17 @@ When running locally:
 - But it needs to follow certain syntax: see [local.settings_sample.json](src/StravaWebhookProcessor/local.settings_sample.json).
 
 When running in Azure:
-- TODO confirm what the setting name should be (same : delimiter?)
+- You need the same settings, but define them in the function app's environment variables. The setting names should have the same sort of syntax like ```StravaWebhookProcessorOptions:StravaApiClientId```.
 
+### Security
+
+Strava doesn't give any explicit info on additional layers of security that we can implement, so there are a few things I _don't_ do:
+
+- We can't require additional steps, like a token in the request header or multiple steps
+- Perhaps we could use inbound IP restrictions, but I haven't tried this to see whether they send from a static IP. I don't currently want to deal with that in case it changes and then I am down.
+- It is also annoying that using [function authorization level](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-http-webhook-trigger?tabs=python-v2%2Cisolated-process%2Cnodejs-v4%2Cfunctionsv2&pivots=programming-language-csharp#api-key-authorization), doesn't seem to work - that could be a simple little layer from the configurable key. My guess on the problem is then we already have a query on the url like "?code=functionKey", but all we can provide to strava is a "callback url". Since they put they own query params on their request, maybe they assume they are just _starting_ a query at the end of the url, then it's invalid. Thus I need to leave it at the anonymous so anything can call the endpoint.
+
+So I started using a little method of security through obscurity, by using a configurable route prefix which is a little like the configurable function key. I just set it to something super long (although like the Strava docs say the callback url must be <= 255 characters).
 Notice in the local.settings_sample.json file there is this setting ```AzureFunctionsJobHost__extensions__http__routePrefix```
 - This overrides the ```routePrefix``` setting in the host.json file, providing an extra configuration for what the function's url will be
 

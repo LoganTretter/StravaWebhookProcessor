@@ -5,9 +5,6 @@ namespace StravaWebhookProcessor;
 public class StravaWebhookProcessorOptions
 {
     [Required(AllowEmptyStrings = false)]
-    public required string KeyVaultUri { get; set; }
-
-    [Required(AllowEmptyStrings = false)]
     public required string StravaApiClientId { get; set; }
 
     [Required(AllowEmptyStrings = false)]

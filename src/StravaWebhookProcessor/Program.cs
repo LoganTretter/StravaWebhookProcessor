@@ -26,8 +26,14 @@ var host = new HostBuilder()
         services.AddSingleton(serviceProvider =>
         {
             // FYI for local testing - need to run the "az login" cmd for this to work
-            var options = serviceProvider.GetRequiredService<IOptions<StravaWebhookProcessorOptions>>().Value;
-            return new SecretClient(new Uri(options.KeyVaultUri), new DefaultAzureCredential());
+            var config = serviceProvider.GetRequiredService<IConfiguration>();
+            var keyVaultUri = config.GetValue<string>("KeyVaultUri");
+            if (string.IsNullOrWhiteSpace(keyVaultUri))
+            {
+                throw new InvalidOperationException("KeyVaultUri setting is not configured.");
+            }
+
+            return new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
         });
 
         services.AddScoped(serviceProvider =>

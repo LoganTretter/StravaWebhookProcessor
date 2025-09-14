@@ -20,21 +20,30 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
                 await ProcessActivityCreation(logger, athleteId, activityId);
                 break;
             default:
+                logger?.LogInformation("Event type is not handled, so no action is taken");
                 break;
         }
     }
 
     private async Task ProcessActivityCreation(ILogger? logger, long athleteId, long activityId)
     {
+        logger?.LogInformation("Processing creation of activity id {ActivityId}", activityId);
+
         var activity = await stravaApiClient.GetActivity(activityId).ConfigureAwait(false);
 
         // Indicator that this activity has already been processed. Can't set private notes so using description.
         if (activity.Description != null && activity.Description.Contains("~~"))
+        {
+            logger?.LogInformation("Description has indicator that activity has already been processed, so taking no further action");
             return;
+        }
 
         // These indicate I have already processed these activities in some other way
         if (activity.Name != null && (activity.Name.StartsWith("Treadmill Hike") || activity.Name.StartsWith("Treadmill Run") || activity.Name.StartsWith("General Activity")))
+        {
+            logger?.LogInformation("Name has indicator that activity has already been processed, so taking no further action");
             return;
+        }
 
         var updateInfo = new ActivityUpdateInfo
         {
@@ -53,13 +62,13 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
             // Could also maybe use avg HR - unlikely to be below 110 for my hikes
             if (!string.IsNullOrEmpty(activity.Map?.SummaryPolyline) || !activity.Trainer)
             {
-                logger?.LogDebug("Updating walk activity with map - hiding from feed.");
+                logger?.LogInformation("Updating walk activity with map - hiding from feed");
 
                 updateInfo.SuppressFromFeed = true;
             }
             else
             {
-                logger?.LogDebug("Updating walk activity without map - marking as treadmill hike to be refined.");
+                logger?.LogInformation("Updating walk activity without map - marking as treadmill hike to be refined");
 
                 updateInfo.Name = "Treadmill Hike ~";
                 updateInfo.Description = "~~\nto be refined";
@@ -69,7 +78,7 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
         }
         else if (activity.SportType == ActivityType.Run && string.IsNullOrEmpty(activity.Map?.SummaryPolyline) && activity.Name != null && !activity.Name.Equals("Treadmill Run"))
         {
-            logger?.LogDebug("Updating run activity without map - marking as treadmill run to be refined.");
+            logger?.LogInformation("Updating run activity without map - marking as treadmill run to be refined");
 
             updateInfo.Name = "Treadmill Run ~";
             updateInfo.Description = "~~\nto be refined";
@@ -77,12 +86,13 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
         }
         else if ((activity.SportType == ActivityType.Run || activity.SportType == ActivityType.TrailRun || activity.SportType == ActivityType.Hike) && activity.StartLocation != null && activity.EndLocation != null)
         {
+            logger?.LogInformation("Updating weather info on activity with a location");
             await UpdateDescriptionWithWeatherInfo(activity).ConfigureAwait(false);
             updateInfo.Description = activity.Description;
         }
         else if (activity.SportType == ActivityType.WeightTraining)
         {
-            logger?.LogDebug("Updating weight training activity - setting properties and hiding from feed.");
+            logger?.LogInformation("Updating weight training activity - setting properties and hiding from feed");
 
             updateInfo.Name = "Strength Training";
             updateInfo.SportType = ActivityType.WeightTraining;
@@ -90,7 +100,7 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
         }
         else if (activity.SportType == ActivityType.Workout && string.IsNullOrEmpty(activity.Map?.SummaryPolyline))
         {
-            logger?.LogDebug("Updating workout activity without map - setting properties and hiding from feed.");
+            logger?.LogInformation("Updating workout activity without map - setting properties and hiding from feed");
 
             updateInfo.Name = "General Activity";
             updateInfo.SportType = ActivityType.Workout;
@@ -98,6 +108,7 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
         }
         else
         {
+            logger?.LogInformation("No conditions applied, no action was taken");
             return;
         }
 

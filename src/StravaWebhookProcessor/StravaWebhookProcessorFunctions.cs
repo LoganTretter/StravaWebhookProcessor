@@ -29,7 +29,7 @@ public class StravaWebhookProcessor
         FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(KeepWarmFunction));
-        logger.LogDebug($"Executed {nameof(KeepWarmFunction)}");
+        logger.LogInformation($"Executed {nameof(KeepWarmFunction)}");
     }
 
     [Function(nameof(StravaWebhookReceiver))]
@@ -39,8 +39,7 @@ public class StravaWebhookProcessor
         FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(StravaWebhookReceiver));
-        logger.LogDebug($"Executing {nameof(StravaWebhookReceiver)}");
-
+        
         HttpResponseData? response;
 
         if (req.Method.Equals("get", StringComparison.OrdinalIgnoreCase))
@@ -63,7 +62,7 @@ public class StravaWebhookProcessor
 
     private async Task<HttpResponseData> HandleSubscriptionChallenge(ILogger logger, HttpRequestData req)
     {
-        logger.LogDebug("Received subscription creation request");
+        logger.LogInformation("Received subscription creation request");
 
         var queryParams = req.Query;
         var mode = queryParams.Get("hub.mode");
@@ -78,7 +77,7 @@ public class StravaWebhookProcessor
         if (string.IsNullOrEmpty(challenge))
             return req.CreateResponse(HttpStatusCode.BadRequest);
 
-        logger.LogDebug("Received successful subscription creation request");
+        logger.LogInformation("Validated subscription creation request; echoing challenge");
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(new SubscriptionChallenge { Challenge = challenge }).ConfigureAwait(false);
@@ -88,7 +87,7 @@ public class StravaWebhookProcessor
 
     private async Task<HttpResponseData> HandleWebhookEvent(ILogger logger, DurableTaskClient durableTaskClient, HttpRequestData req)
     {
-        logger.LogDebug($"Executing {nameof(HandleWebhookEvent)}");
+        logger.LogInformation($"Executing {nameof(HandleWebhookEvent)}");
 
         StravaWebhookEventContent? webhookContent = null;
 
@@ -96,18 +95,18 @@ public class StravaWebhookProcessor
         {
             webhookContent = await req.ReadFromJsonAsync<StravaWebhookEventContent>();
 
-            logger.LogDebug("Received: {webhookContent}", JsonSerializer.Serialize(webhookContent));
+            logger.LogInformation("Received: {webhookContent}", JsonSerializer.Serialize(webhookContent));
         }
         catch
         {
             try
             {
                 var requestString = await req.ReadAsStringAsync().ConfigureAwait(false);
-                logger.LogDebug("Failed to parse content, received string: {webhookContent}", requestString);
+                logger.LogInformation("Failed to parse content, received string: {webhookContent}", requestString);
             }
             catch
             {
-                logger.LogDebug("Failed to parse content, failed to even read as string");
+                logger.LogInformation("Failed to parse content, failed to even read as string");
             }
 
             return req.CreateResponse(HttpStatusCode.BadRequest);
@@ -151,12 +150,8 @@ public class StravaWebhookProcessor
 
     [Function(nameof(StravaWebhookOrchestrator))]
     public async Task StravaWebhookOrchestrator(
-        [OrchestrationTrigger] TaskOrchestrationContext context,
-        FunctionContext executionContext)
+        [OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var logger = executionContext.GetLogger(nameof(StravaWebhookOrchestrator));
-        logger.LogDebug($"Executing {nameof(StravaWebhookOrchestrator)}");
-
         await context.CallActivityAsync<string>(nameof(StravaWebhookEventProcessor), context.GetInput<StravaWebhookEventContent>());
     }
 
@@ -166,8 +161,7 @@ public class StravaWebhookProcessor
         FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(StravaWebhookEventProcessor));
-        logger.LogDebug($"Executing {nameof(StravaWebhookEventProcessor)}");
-
+        
         await _stravaEventProcessor.ProcessActivityEvent(webhookContent.StravaWebhookEventType, logger, webhookContent.AthleteId, webhookContent.ObjectId).ConfigureAwait(false);
     }
 }

@@ -21,7 +21,7 @@ var host = new HostBuilder()
             .ValidateOnStart();
 
         services.AddSingleton<IOpenMeteoClient, OpenMeteoClient>();
-        services.AddSingleton<IStravaApiTokenStorer, StravaApiTokenKeyVaultStorer>();
+        services.AddSingleton<IStravaApiAthleteAuthInfoStorer, StravaApiAthleteAuthInfoKeyVaultStorer>();
 
         services.AddSingleton(serviceProvider =>
         {
@@ -39,7 +39,7 @@ var host = new HostBuilder()
         services.AddScoped(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<StravaWebhookProcessorOptions>>().Value;
-            var stravaTokenStorer = serviceProvider.GetRequiredService<IStravaApiTokenStorer>();
+            var stravaTokenStorer = serviceProvider.GetRequiredService<IStravaApiAthleteAuthInfoStorer>();
             return new StravaApiClient(options.StravaApiClientId, options.StravaApiClientSecret, stravaTokenStorer);
         });
 

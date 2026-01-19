@@ -29,7 +29,7 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
     {
         logger?.LogInformation("Processing creation of activity id {ActivityId}", activityId);
 
-        var activity = await stravaApiClient.GetActivity(activityId).ConfigureAwait(false);
+        var activity = await stravaApiClient.GetActivity(activityId, athleteId).ConfigureAwait(false);
 
         // Indicator that this activity has already been processed. Can't set private notes so using description.
         if (activity.Description != null && activity.Description.Contains("~~"))
@@ -112,7 +112,7 @@ public class StravaWebhookEventProcessor(StravaApiClient stravaApiClient, IOpenM
             return;
         }
 
-        await stravaApiClient.UpdateActivity(updateInfo).ConfigureAwait(false);
+        await stravaApiClient.UpdateActivity(updateInfo, athleteId).ConfigureAwait(false);
     }
 
     private async Task UpdateDescriptionWithWeatherInfo(Activity activity)
